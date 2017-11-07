@@ -13,24 +13,28 @@ services:
       KAFKA_ADVERTISED_PORT: 9092
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_CREATE_TOPICS: "order:5:1"
-  apache:
-    build: apache
-    links:
-     - order
-     - shipping
-     - invoicing
-    ports:
-     - "8080:80"
   postgres:
     build: postgres
     environment:
       POSTGRES_PASSWORD: dbpass
       POSTGRES_USER: dbuser
+  traefik:
+    build: traefik
+    ports:
+     - "80:80"
+     - "8080:8080"
+    volumes:
+     - /var/run/docker.sock:/var/run/docker.sock
   order:
     build: ../microservice-kafka/microservice-kafka-order
     links:
      - kafka
      - postgres
+    labels:
+      - "traefik.backend=order"
+      - "traefik.frontend.rule=Host:docker;PathPrefixStrip:/order/"
+      - "traefik.frontend.entryPoints=http"
+      - "traefik.tags=web"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
   shipping:
@@ -38,6 +42,11 @@ services:
     links:
      - kafka
      - postgres
+    labels:
+      - "traefik.backend=shipping"
+      - "traefik.frontend.rule=Host:docker;PathPrefixStrip:/shipping/"
+      - "traefik.frontend.entryPoints=http"
+      - "traefik.tags=web"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
   invoicing:
@@ -45,6 +54,11 @@ services:
     links:
      - kafka
      - postgres
+    labels:
+      - "traefik.backend=invoicing"
+      - "traefik.frontend.rule=Host:docker;PathPrefixStrip:/invoicing/"
+      - "traefik.frontend.entryPoints=http"
+      - "traefik.tags=web"
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
 
